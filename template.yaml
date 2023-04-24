@@ -1,0 +1,87 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  user-app
+
+  Sample SAM Template for user-app
+
+Globals:
+  Function:
+    Timeout: 5
+    MemorySize: 128
+
+Parameters:
+  TABLENAME:
+    Type: String
+    Description: The DynamoDB table for storing user information.
+    Default: 'user'
+
+  REGIONNAME:
+    Type: String
+    Description: Default region for deployment.
+    Default: 'eu-central-1'
+
+Resources:
+  UserDynamoDBTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Delete
+    Properties:
+      TableName: !Ref TABLENAME
+      AttributeDefinitions:
+        - AttributeName: userId
+          AttributeType: S
+      KeySchema:
+        - AttributeName: userId
+          KeyType: HASH
+      BillingMode: PAY_PER_REQUEST
+      ProvisionedThroughput:
+        ReadCapacityUnits: 0
+        WriteCapacityUnits: 0
+
+  UserCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: user/
+      Handler: user
+      Runtime: go1.x
+      Policies:
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserDynamoDBTable
+      Architectures:
+      - x86_64
+      Events:
+        PostUser:
+          Type: HttpApi
+          Properties:
+            Path: /user
+            Method: POST
+        GetUser:
+          Type: HttpApi
+          Properties:
+            Path: /user/{userId}
+            Method: GET
+      Environment: 
+        Variables:
+          AWSREGION: !Ref REGIONNAME
+
+
+  ApplicationResourceGroup:
+    Type: AWS::ResourceGroups::Group
+    Properties:
+      Name:
+        Fn::Sub: ApplicationInsights-SAM-${AWS::StackName}
+      ResourceQuery:
+        Type: CLOUDFORMATION_STACK_1_0
+  ApplicationInsightsMonitoring:
+    Type: AWS::ApplicationInsights::Application
+    Properties:
+      ResourceGroupName:
+        Ref: ApplicationResourceGroup
+      AutoConfigurationEnabled: 'true'
+Outputs:
+  UserCreateFunction:
+    Description: First Lambda Function ARN
+    Value: !GetAtt UserCreateFunction.Arn
+  UserCreateFunctionIamRole:
+    Description: Implicit IAM Role created for User API function
+    Value: !GetAtt UserCreateFunctionRole.Arn
