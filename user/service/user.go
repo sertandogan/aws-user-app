@@ -14,6 +14,7 @@ type userService struct {
 type UserService interface {
 	GetUser(userId string) (*response.UserResponse, error)
 	SaveUser(request request.UserCreateRequest) error
+	DeleteUser(userId string) error
 }
 
 func NewUserService(userRepository user_repository.UserRepository) UserService {
@@ -43,6 +44,14 @@ func (s *userService) SaveUser(request request.UserCreateRequest) error {
 		Email:       request.Email,
 		UserId:      request.UserId,
 	})
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *userService) DeleteUser(userId string) error {
+	err := s.userRepository.DeleteUser(userId)
 	if err != nil {
 		return err
 	}

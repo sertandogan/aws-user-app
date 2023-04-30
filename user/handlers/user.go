@@ -22,6 +22,19 @@ func GetUser(request events.APIGatewayV2HTTPRequest, service service.UserService
 	return apiResponse(http.StatusOK, user)
 }
 
+func DeleteUser(request events.APIGatewayV2HTTPRequest, service service.UserService) (*events.APIGatewayV2HTTPResponse, error) {
+	userId := request.PathParameters["userId"]
+	if len(userId) == 0 {
+		return nil, exception.InvalidInputError
+	}
+	err := service.DeleteUser(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	return apiResponse(http.StatusOK, nil)
+}
+
 func CreateUser(request events.APIGatewayV2HTTPRequest, userService service.UserService) (*events.APIGatewayV2HTTPResponse, error) {
 	var userRequest request2.UserCreateRequest
 	if err := json.Unmarshal([]byte(request.Body), &userRequest); err != nil {

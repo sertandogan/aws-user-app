@@ -25,6 +25,10 @@ func handler(ctx context.Context, request events.APIGatewayV2HTTPRequest) (*even
 		{
 			return handlers.GetUser(request, userService)
 		}
+	case "DELETE":
+		{
+			return handlers.DeleteUser(request, userService)
+		}
 	default:
 		{
 			return &events.APIGatewayV2HTTPResponse{

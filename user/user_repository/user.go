@@ -18,6 +18,7 @@ type userRepository struct {
 type UserRepository interface {
 	AddUser(request *domain.UserEntity) error
 	GetUser(userId string) (*domain.UserEntity, error)
+	DeleteUser(userId string) error
 }
 
 func NewUserRepository(client *dynamodb.DynamoDB) UserRepository {
@@ -38,6 +39,22 @@ func (repo *userRepository) AddUser(entity *domain.UserEntity) error {
 	if err != nil {
 		log.Default().Printf("Got error calling PutItem: %s", err)
 		return exception.UnknownException
+	}
+	return nil
+}
+
+func (repo *userRepository) DeleteUser(userId string) error {
+	_, err := repo.awsClient.DeleteItem(
+		&dynamodb.DeleteItemInput{
+			Key: map[string]*dynamodb.AttributeValue{
+				"userId": {
+					S: aws.String(userId),
+				},
+			},
+			TableName: aws.String(AwsTable),
+		})
+	if err != nil {
+		return err
 	}
 	return nil
 }

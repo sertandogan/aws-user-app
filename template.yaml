@@ -89,6 +89,11 @@ Resources:
           Properties:
             Path: /user/{userId}
             Method: GET
+        DeleteUser:
+          Type: HttpApi
+          Properties:
+            Path: /user/{userId}
+            Method: DELETE
       Environment: 
         Variables:
           AWSREGION: !Ref REGIONNAME
