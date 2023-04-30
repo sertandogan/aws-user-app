@@ -15,27 +15,29 @@ import (
 func handler(ctx context.Context, event events.DynamoDBEvent) error {
 	for _, record := range event.Records {
 		fmt.Printf("Item come from DynamoDB table: %s", record.Change.NewImage)
-
-		user := new(User)
-		err := mapstructure.Decode(record.Change.NewImage, &user)
-		if err != nil {
-			return err
-		}
 		eventName := record.EventName
 
 		switch eventName {
 		case "INSERT":
-			err := sendEmail(user.Email, fmt.Sprintf("Welcome %s", user.Name), "Welcome Mail")
+			user, err := convertEventToUser(record.Change.NewImage)
+			if err != nil {
+				return err
+			}
+			err = sendEmail(user.Email, fmt.Sprintf("Welcome %s", user.Name), "Welcome Mail")
 			if err != nil {
 				return err
 			}
 		case "DELETE":
-			err := sendEmail(user.Email, fmt.Sprintf("Goodbye %s", user.Name), "Miss You!!!")
+			user, err := convertEventToUser(record.Change.OldImage)
+			if err != nil {
+				return err
+			}
+			err = sendEmail(user.Email, fmt.Sprintf("Goodbye %s", user.Name), "Miss You!!!")
 			if err != nil {
 				return err
 			}
 		default:
-
+			fmt.Println("Not correct event type")
 		}
 
 		fmt.Println("Email sent successfully")
@@ -79,6 +81,22 @@ func sendEmail(to, body, subject string) error {
 		return fmt.Errorf("failed to send email: %v", err)
 	}
 	return nil
+}
+
+func convertEventToUser(event map[string]events.DynamoDBAttributeValue) (*User, error) {
+	var userMap map[string]interface{}
+	err := mapstructure.Decode(event, &userMap)
+	if err != nil {
+		return nil, err
+	}
+
+	var user User
+	err = mapstructure.Decode(userMap, &user)
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
 }
 
 type User struct {
