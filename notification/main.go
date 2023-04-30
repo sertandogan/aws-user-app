@@ -2,13 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"github.com/aws/aws-lambda-go/events"
 	"github.com/aws/aws-lambda-go/lambda"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/dynamodb"
+	"github.com/aws/aws-sdk-go/service/dynamodb/dynamodbattribute"
 	"github.com/aws/aws-sdk-go/service/ses"
-	"github.com/mitchellh/mapstructure"
 	"os"
 )
 
@@ -84,18 +86,27 @@ func sendEmail(to, body, subject string) error {
 }
 
 func convertEventToUser(event map[string]events.DynamoDBAttributeValue) (*User, error) {
-	var userMap map[string]interface{}
-	err := mapstructure.Decode(event, &userMap)
-	if err != nil {
-		return nil, err
-	}
-
+	dbAttrMap := make(map[string]*dynamodb.AttributeValue)
 	var user User
-	err = mapstructure.Decode(userMap, &user)
+	for k, v := range event {
+
+		var dbAttr dynamodb.AttributeValue
+
+		bytes, marshalErr := v.MarshalJSON()
+		if marshalErr != nil {
+			return nil, marshalErr
+		}
+
+		err := json.Unmarshal(bytes, &dbAttr)
+		if err != nil {
+			return nil, err
+		}
+		dbAttrMap[k] = &dbAttr
+	}
+	err := dynamodbattribute.UnmarshalMap(dbAttrMap, &user)
 	if err != nil {
 		return nil, err
 	}
-
 	return &user, nil
 }
 
