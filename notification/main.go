@@ -16,7 +16,6 @@ import (
 
 func handler(ctx context.Context, event events.DynamoDBEvent) error {
 	for _, record := range event.Records {
-		fmt.Printf("Item come from DynamoDB table: %s", record.Change.NewImage)
 		eventName := record.EventName
 
 		switch eventName {
@@ -29,7 +28,7 @@ func handler(ctx context.Context, event events.DynamoDBEvent) error {
 			if err != nil {
 				return err
 			}
-		case "DELETE":
+		case "REMOVE":
 			user, err := convertEventToUser(record.Change.OldImage)
 			if err != nil {
 				return err
