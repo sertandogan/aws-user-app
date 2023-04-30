@@ -21,6 +21,10 @@ Parameters:
     Description: Default region for deployment.
     Default: 'eu-central-1'
 
+  FROMEMAILADDRESS:
+    Type: String
+    Default: 'sertandogan@outlook.com'
+
 Resources:
   UserDynamoDBTable:
     Type: AWS::DynamoDB::Table
@@ -37,6 +41,31 @@ Resources:
       ProvisionedThroughput:
         ReadCapacityUnits: 0
         WriteCapacityUnits: 0
+
+  MailFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: notification/
+      Handler: notification
+      Runtime: go1.x
+      Policies:
+        - SESCrudPolicy:
+            IdentityName: !Ref FROMEMAILADDRESS
+        - DynamoDBCrudPolicy:
+            TableName: !Ref UserDynamoDBTable
+      Architectures:
+        - x86_64
+      Events:
+        Stream:
+          Type: DynamoDB
+          Properties:
+            Stream: !GetAtt UserDynamoDBTable.StreamArn
+            BatchSize: 1
+            StartingPosition: LATEST
+      Environment:
+        Variables:
+          AWSREGION: !Ref REGIONNAME
+          FROMEMAILADDRESS: !Ref FROMEMAILADDRESS
 
   UserCreateFunction:
     Type: AWS::Serverless::Function
@@ -63,7 +92,6 @@ Resources:
       Environment: 
         Variables:
           AWSREGION: !Ref REGIONNAME
-
 
   ApplicationResourceGroup:
     Type: AWS::ResourceGroups::Group
